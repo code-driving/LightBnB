@@ -1,13 +1,16 @@
 // const properties = require("./json/properties.json");
 // const users = require("./json/users.json");
-const { Pool } = require('pg');
+const { Pool } = require("pg");
 const pool = new Pool({
   user: "vagrant",
   password: "123",
   host: "localhost",
-  database: "lightbnb"
+  database: "lightbnb",
 });
-pool.connect().then(console.log('Connected :)')).catch(err => console.log(err));
+pool
+  .connect()
+  .then(console.log("Connected :)"))
+  .catch((err) => console.log(err));
 /// Users
 
 /**
@@ -62,7 +65,7 @@ const addUser = function (user) {
   VALUES($1, $2, $3) RETURNING *;
   `;
   const values = [user.name, user.email, user.password];
-  
+
   return pool
     .query(query, values)
     .then((response) => {
@@ -87,11 +90,12 @@ const getAllReservations = function (guest_id, limit = 10) {
   WHERE reservations.guest_id = $1 AND reservations.end_date < now()::date
   LIMIT $2
   `;
-  const values = [guest_id, limit]
-  
-  return pool.query(query, values)
-  .then(response => response.rows)
-  .catch(error => error.stack)
+  const values = [guest_id, limit];
+
+  return pool
+    .query(query, values)
+    .then((response) => response.rows)
+    .catch((error) => error.stack);
 };
 exports.getAllReservations = getAllReservations;
 
@@ -103,17 +107,56 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
+
 const getAllProperties = function (options, limit = 10) {
-  return pool
-    .query(
-      `
-  SELECT * FROM properties
-  LIMIT $1
-  `,
-      [limit]
-    )
-    .then((res) => res.rows);
+  // 1
+  const queryParams = [];
+  // 2
+  let queryString = `
+  SELECT properties.*, avg(property_reviews.rating) as average_rating
+  FROM properties
+  JOIN property_reviews ON properties.id = property_id
+  WHERE TRUE
+  `;
+
+  // 3
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `AND city LIKE $${queryParams.length} `; //$1
+  }
+  // 4
+  if (options.owner_id) {
+    queryParams.push(options.owner_id);
+    queryString += `AND properties.owner_id = $${queryParams.length}`; //$2
+  }
+  // 5
+  if (options.minimum_price_per_night) {
+    queryParams.push(options.minimum_price_per_night);
+    queryString += `AND cost_per_night > $${queryParams.length}`;
+  }
+  // 6
+  if (options.maximum_price_per_night) {
+    queryParams.push(options.maximum_price_per_night);
+    queryString += `AND cost_per_night < $${queryParams.length}`;
+  }
+  // 7
+  if (options.minimum_rating > 0) {
+    queryParams.push(options.minimum_rating);
+    queryString += `AND rating > $${queryParams.length}`;
+  }
+  // 8
+  queryParams.push(limit);
+  queryString += `
+    GROUP BY properties.id
+    ORDER BY cost_per_night
+    LIMIT $${queryParams.length};
+    `;
+
+  return pool.query(queryString, queryParams)
+  .then((res) => res.rows)
+  .catch(error => console.log(error));
 };
+
 exports.getAllProperties = getAllProperties;
 
 /**
