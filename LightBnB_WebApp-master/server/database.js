@@ -1,6 +1,13 @@
-const properties = require("./json/properties.json");
-const users = require("./json/users.json");
-
+// const properties = require("./json/properties.json");
+// const users = require("./json/users.json");
+const { Pool } = require('pg');
+const pool = new Pool({
+  user: "vagrant",
+  password: "123",
+  host: "localhost",
+  database: "lightbnb"
+});
+pool.connect().then(console.log('Connected :)')).catch(err => console.log(err));
 /// Users
 
 /**
@@ -11,7 +18,7 @@ const users = require("./json/users.json");
 
 const getUserWithEmail = function (email) {
   const query = `
-SELECT email
+SELECT *
 FROM users
 WHERE email = $1;
 `;
@@ -22,6 +29,7 @@ WHERE email = $1;
     .then((response) => response.rows[0])
     .catch((error) => console.error("User not found", error.stack));
 };
+exports.getUserWithEmail = getUserWithEmail;
 /**
  * Get a single user from the database given their id.
  * @param {string} id The id of the user.
@@ -30,7 +38,7 @@ WHERE email = $1;
 
 const getUserWithId = function (id) {
   const query = `
-  SELECT id
+  SELECT *
   FROM users
   WHERE id = $1;
   `;
@@ -72,7 +80,18 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function (guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  const query = `
+  SELECT reservations.*, properties.*
+  FROM reservations
+  JOIN properties ON reservations.property_id = properties.id
+  WHERE reservations.guest_id = $1 AND reservations.end_date < now()::date
+  LIMIT $2
+  `;
+  const values = [guest_id, limit]
+  
+  return pool.query(query, values)
+  .then(response => response.rows)
+  .catch(error => error.stack)
 };
 exports.getAllReservations = getAllReservations;
 
