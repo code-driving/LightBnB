@@ -8,14 +8,6 @@ const users = require("./json/users.json");
  * @param {String} email The email of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-// const getUserWithEmail = function(email) {
-// return pool.query(`SELECT $1
-// FROM users;`, [email]).then(response => {
-//   return response.rows[0].email;
-// }).catch(err => {
-//   return null;
-// })
-// };
 
 const getUserWithEmail = function (email) {
   const query = `
@@ -35,14 +27,7 @@ WHERE email = $1;
  * @param {string} id The id of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-// const getUserWithId = function(id) {
-//   return pool.query(`SELECT $1
-// FROM users;`, [id]).then(response => {
-//   return response.rows[0].id;
-// }).catch(err => {
-//   return null;
-// })
-// };
+
 const getUserWithId = function (id) {
   const query = `
   SELECT id
