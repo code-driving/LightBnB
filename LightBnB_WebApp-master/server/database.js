@@ -187,7 +187,8 @@ const addProperty = function (property) {
     property.parking_spaces,
     property.number_of_bathrooms,
     property.number_of_bedrooms,
-  ];
+  ]
+  
   return pool
   .query(query, values)
   .then((response) => response.rows[0])
